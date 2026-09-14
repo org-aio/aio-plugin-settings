@@ -7,35 +7,10 @@ struct Response<T> {
     data: T,
 }
 
-pub(super) async fn load() -> Result<(SessionView, Vec<String>), String> {
-    let session = get::<Option<SessionView>>("/api/auth/session")
+pub(super) async fn load() -> Result<SessionView, String> {
+    get::<Option<SessionView>>("/api/auth/session")
         .await?
-        .ok_or_else(|| "会话已失效".to_owned())?;
-    let sources = if session.permissions.iter().any(|p| p == "plugin:manage") {
-        get("/api/runtime/registries").await?
-    } else {
-        Vec::new()
-    };
-    Ok((session, sources))
-}
-
-pub(super) async fn save(source: String, remove: bool) -> Result<(), String> {
-    let builder = if remove {
-        Request::delete("/api/runtime/registries")
-    } else {
-        Request::post("/api/runtime/registries")
-    };
-    let response = builder
-        .json(&serde_json::json!({ "source": source.trim() }))
-        .map_err(|e| e.to_string())?
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if response.ok() {
-        Ok(())
-    } else {
-        Err(error(response).await)
-    }
+        .ok_or_else(|| "会话已失效，请重新登录".to_owned())
 }
 
 async fn get<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, String> {

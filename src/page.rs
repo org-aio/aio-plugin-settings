@@ -1,71 +1,49 @@
 use super::http;
 use az_ui_components::{
-    admin::{
-        AsyncResult, CollectionTable, DeleteRecordsDialog, EditorDialog, PageHeader, PageSurface,
-        RequestState, SortValue, StatusMessage,
-    },
+    admin::{PageHeader, PageSurface, RequestState},
+    appearance::AppearanceSettings,
     badge::{Badge, BadgeVariant},
-    button::{Button, ButtonSize, ButtonVariant},
-    data_table::{DataTableCellContext, DataTableColumn},
-    input::Input,
 };
 use dioxus::prelude::*;
-use dioxus_icons::lucide::{Plus, RefreshCw, Trash2};
 
 #[allow(non_snake_case)]
 pub(super) fn SettingsPage() -> Element {
-    let mut revision = use_signal(|| 0_u64);
-    let resource = use_resource(move || {
-        let _ = revision();
-        http::load()
-    });
-    let mut adding = use_signal(|| false);
-    let mut removing = use_signal(|| None::<String>);
-    let mut feedback = use_signal(|| None::<String>);
-    let (session, registries) = match resource.read().as_ref().cloned() {
+    let mut resource = use_resource(http::load);
+    let session = match resource.read().as_ref().cloned() {
         Some(Ok(value)) => value,
         Some(Err(error)) => {
-            return rsx! { PageSurface { RequestState { error, on_retry: move |_| revision += 1 } } };
+            return rsx! { RequestState { error, on_retry: move |_| resource.restart() } };
         }
-        None => return rsx! { PageSurface { RequestState {} } },
+        None => return rsx! { RequestState {} },
     };
     rsx! {
-        PageSurface {
-            PageHeader { title: "设置中心", detail: session.tenant_label.clone(),
-                Button { size: ButtonSize::Icon, variant: ButtonVariant::Outline, title: "刷新设置", aria_label: "刷新设置", onclick: move |_| revision += 1, RefreshCw {} }
-            }
-            if let Some(message) = feedback() { StatusMessage { message } }
-            section { class: "admin-section", h2 { "当前会话" }
-                dl { class: "admin-details", dt { "账户" } dd { "{session.display_name} (@{session.account})" } dt { "租户" } dd { "{session.tenant_label}" } dt { "租户 ID" } dd { code { class: "admin-code", "{session.tenant_id}" } } }
-            }
-            if session.permissions.iter().any(|p| p == "plugin:manage") {
-                section { class: "admin-section", h2 { "自定义市场源" }
-                    CollectionTable { label: "市场源", rows: registries, columns: vec![DataTableColumn::leaf("source", "HTTPS Git / 索引地址").width(640), DataTableColumn::leaf("actions", "操作").width(80)],
-                        row_key: |source: String| source, search_text: |source: String| source, sort_value: |(source, _): (String, String)| SortValue::Text(source), sortable: vec!["source".into()],
-                        tools: rsx! { Button { onclick: move |_| adding.set(true), Plus {} "添加市场源" } }, empty_text: "暂无自定义市场源",
-                        render_cell: move |context: DataTableCellContext<String>| { let source = context.row; if context.column.key == "source" { rsx! { code { class: "admin-code", "{source}" } } } else { rsx! {
-                            Button { size: ButtonSize::IconSm, variant: ButtonVariant::Ghost, title: "移除市场源", aria_label: "移除 {source}", onclick: move |_| removing.set(Some(source.clone())), Trash2 {} }
-                        } } },
+        div { class: "workbench-settings",
+            PageSurface {
+                PageHeader { title: "设置", detail: "让工作台更适合你的习惯" }
+                section { class: "workbench-settings__section", aria_label: "账户与工作区",
+                    div { h2 { "账户与工作区" } p { "当前登录身份和正在使用的工作区。" } }
+                    dl { class: "admin-details",
+                        dt { "账户" } dd { "{session.display_name} (@{session.account})" }
+                        dt { "工作区" } dd { "{session.tenant_label}" }
+                    }
+                    p { class: "admin-meta", "在账户菜单中打开个人资料或切换工作区。" }
+                }
+                section { class: "workbench-settings__section", aria_label: "外观",
+                    div { h2 { "外观" } p { "调整主题和信息密度，修改即时生效。" } }
+                    AppearanceSettings {}
+                }
+                section { class: "workbench-settings__section", aria_label: "关于",
+                    div { h2 { "关于" } p { "AIO · 你的插件工作台" } }
+                    p { "官方插件市场会自动展示已完成构建和发布的插件，无需配置市场源。" }
+                    a { href: "https://github.com/zjarlin/aio-platform/blob/main/docs/plugin/README.md", target: "_blank", rel: "noopener noreferrer", "中文插件开发指南 ↗" }
+                    details { class: "workbench-technical",
+                        summary { "技术详情" }
+                        dl { class: "admin-details", dt { "工作区 ID" } dd { code { "{session.tenant_id}" } } dt { "用户 ID" } dd { code { "{session.user_id}" } } }
+                        h3 { "当前权限" }
+                        div { class: "admin-badges", for permission in session.permissions { Badge { variant: BadgeVariant::Outline, "{permission}" } } }
                     }
                 }
             }
-            section { class: "admin-section", h2 { "当前权限" }
-                div { class: "admin-badges", for permission in session.permissions { Badge { variant: BadgeVariant::Outline, "{permission}" } } }
-            }
         }
-        if adding() { RegistryEditor { on_close: move |_| adding.set(false), on_saved: move |_| { adding.set(false); feedback.set(Some("市场源已添加".into())); revision += 1; } } }
-        if let Some(source) = removing() { DeleteRecordsDialog { title: "移除市场源", warning: "停止从该来源发现插件，不会卸载已安装的插件。", items: vec![source], item_label: |source: String| source,
-            delete: |source: String| -> AsyncResult<()> { Box::pin(async move { http::save(source, true).await }) },
-            on_close: move |_| removing.set(None), on_deleted: move |_| { feedback.set(Some("市场源已移除".into())); revision += 1; },
-        } }
     }
-}
-
-#[component]
-fn RegistryEditor(on_close: Callback<()>, on_saved: Callback<()>) -> Element {
-    let mut source = use_signal(String::new);
-    rsx! { EditorDialog { title: "添加市场源", description: "HTTPS Git 仓库或 index.json 地址。", on_close, on_saved,
-        save: move |_| -> AsyncResult<()> { let source = source(); Box::pin(async move { http::save(source, false).await }) },
-        label { class: "admin-field", span { "市场源地址" } Input { aria_label: "市场源地址", r#type: "url", required: true, value: source(), oninput: move |event: FormEvent| source.set(event.value()) } }
-    } }
 }
