@@ -6,8 +6,8 @@ license = "MIT"
 
 [dependencies]
 aio-plugin-identity-model = { git = "https://github.com/zjarlin/aio-plugin-identity.git", rev = "fea3e38ec25a469d53028c6ca0f0acc58473a396" }
-az-dioxus-admin-shell = { git = "https://github.com/zjarlin/dioxus-admin-workbench.git", rev = "dd4e67b33664a61daa9aede8984a29ed51a8e391" }
-az-ui-components = { git = "https://github.com/zjarlin/dioxus-admin-workbench.git", rev = "dd4e67b33664a61daa9aede8984a29ed51a8e391" }
+az-dioxus-admin-shell = { git = "https://github.com/zjarlin/dioxus-admin-workbench.git", rev = "75f69b0cfab604d6ab1047b967c1adb72a2a0521" }
+az-ui-components = { git = "https://github.com/zjarlin/dioxus-admin-workbench.git", rev = "75f69b0cfab604d6ab1047b967c1adb72a2a0521" }
 dill = "0.15.0"
 dioxus = { version = "=0.7.9", default-features = false, features = ["macro", "html", "signals"] }
 dioxus-icons = { version = "0.1.0", default-features = false }

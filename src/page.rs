@@ -10,7 +10,7 @@ use dioxus::prelude::*;
 pub(super) fn SettingsPage() -> Element {
     let mut resource = use_resource(http::load);
     let extensions = use_context::<ApplicationSettings>();
-    let mut selected = use_signal(|| "general".to_owned());
+    let mut selected = extensions.selected;
     let session = match resource.read().as_ref().cloned() {
         Some(Ok(value)) => value,
         Some(Err(error)) => {
@@ -19,7 +19,7 @@ pub(super) fn SettingsPage() -> Element {
         None => return rsx! { RequestState {} },
     };
     let groups = extensions.groups.read();
-    let current = selected();
+    let current = selected().unwrap_or_default();
     let plugin = groups.iter().find(|group| group.page_id == current);
     let native = match current.as_str() {
         "appearance" | "about" => current.as_str(),
@@ -36,7 +36,7 @@ pub(super) fn SettingsPage() -> Element {
                             Button {
                                 key: "{id}", variant: ButtonVariant::Ghost,
                                 aria_pressed: (active == id).to_string(),
-                                onclick: move |_| selected.set(id.to_owned()),
+                                onclick: move |_| selected.set(Some(id.to_owned())),
                                 "{title}"
                             }
                         }
@@ -50,7 +50,7 @@ pub(super) fn SettingsPage() -> Element {
                                 aria_pressed: (active == group.page_id).to_string(),
                                 onclick: {
                                     let id = group.page_id.clone();
-                                    move |_| selected.set(id.clone())
+                                    move |_| selected.set(Some(id.clone()))
                                 },
                                 span { class: "workbench-settings__navigation-label",
                                     span { "{group.title}" }
