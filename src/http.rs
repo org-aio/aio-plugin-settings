@@ -13,7 +13,7 @@ pub(super) async fn load() -> Result<SessionView, String> {
         .ok_or_else(|| "会话已失效，请重新登录".to_owned())
 }
 
-async fn get<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, String> {
+pub(super) async fn get<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, String> {
     let response = Request::get(path).send().await.map_err(|e| e.to_string())?;
     if !response.ok() {
         return Err(error(response).await);
