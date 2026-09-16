@@ -1,4 +1,5 @@
 mod http;
+mod native;
 mod page;
 
 use az_dioxus_admin_shell::{ApplicationPage, ApplicationPlugin, ApplicationScene};
