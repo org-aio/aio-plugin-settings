@@ -5,7 +5,7 @@ edition = "2024"
 license = "MIT"
 
 [dependencies]
-aio-plugin-identity-model = { git = "https://github.com/zjarlin/aio-plugin-identity.git", rev = "15a9270d33a849893a96b813d795fd2b56ad896b" }
+aio-plugin-identity-model = { git = "https://github.com/zjarlin/aio-plugin-identity.git", rev = "02cd1de9a3430e6428e7af1267501710fcba026b" }
 az-dioxus-admin-shell = { git = "https://github.com/zjarlin/dioxus-admin-workbench.git", rev = "75f69b0cfab604d6ab1047b967c1adb72a2a0521" }
 az-ui-components = { git = "https://github.com/zjarlin/dioxus-admin-workbench.git", rev = "75f69b0cfab604d6ab1047b967c1adb72a2a0521" }
 dill = "0.15.0"
