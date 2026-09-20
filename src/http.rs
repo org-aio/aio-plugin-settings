@@ -1,4 +1,4 @@
-use aio_plugin_identity_model::SessionView;
+use aio_plugin_identity_model::{PaymentChannelView, SessionView, UpdatePaymentChannelRequest};
 use gloo_net::http::Request;
 use serde::Deserialize;
 
@@ -20,6 +20,31 @@ pub(super) async fn get<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, S
     }
     response
         .json::<Response<T>>()
+        .await
+        .map(|r| r.data)
+        .map_err(|e| e.to_string())
+}
+
+pub(super) async fn load_payment_channels() -> Result<Vec<PaymentChannelView>, String> {
+    get("/api/billing/payment-channels").await
+}
+
+pub(super) async fn update_payment_channel(
+    provider: &str,
+    request: UpdatePaymentChannelRequest,
+) -> Result<PaymentChannelView, String> {
+    let response = Request::put(&format!("/api/billing/payment-channels/{provider}"))
+        .header("content-type", "application/json")
+        .body(serde_json::to_string(&request).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !response.ok() {
+        return Err(error(response).await);
+    }
+    response
+        .json::<Response<PaymentChannelView>>()
         .await
         .map(|r| r.data)
         .map_err(|e| e.to_string())

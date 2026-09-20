@@ -1,4 +1,4 @@
-use super::{http, native::NativeSettings};
+use super::{http, native::NativeSettings, payment::PaymentSettings};
 use az_dioxus_admin_shell::ApplicationSettings;
 use az_ui_components::{
     admin::{PageHeader, PageSurface, RequestState},
@@ -22,7 +22,7 @@ pub(super) fn SettingsPage() -> Element {
     let current = selected().unwrap_or_default();
     let plugin = groups.iter().find(|group| group.page_id == current);
     let native = match current.as_str() {
-        "appearance" | "about" => current.as_str(),
+        "appearance" | "about" | "payment" => current.as_str(),
         _ => "general",
     };
     let active = plugin.map(|group| group.page_id.as_str()).unwrap_or(native);
@@ -32,7 +32,7 @@ pub(super) fn SettingsPage() -> Element {
                 PageHeader { title: "设置", detail: "管理工作台和已安装插件的设置" }
                 div { class: "workbench-settings__layout",
                     nav { class: "workbench-settings__navigation", aria_label: "设置分组",
-                        for (id, title) in [("general", "常规"), ("appearance", "外观"), ("about", "关于")] {
+                        for (id, title) in [("general", "常规"), ("payment", "支付"), ("appearance", "外观"), ("about", "关于")] {
                             Button {
                                 key: "{id}", variant: ButtonVariant::Ghost,
                                 aria_pressed: (active == id).to_string(),
@@ -71,6 +71,8 @@ pub(super) fn SettingsPage() -> Element {
                                 }
                                 {extensions.render.call(group.page_id.clone())}
                             }
+                        } else if native == "payment" {
+                            PaymentSettings {}
                         } else {
                             NativeSettings { section: native.to_owned(), session }
                         }
